@@ -1,31 +1,40 @@
-version: '3'
+version: '3.8'
+
 services:
-  payment-service:
-    build: .
-    ports:
-      - '3002:3002'
-    environment:
-      - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=yourpassword
-      - DB_NAME=payment_db
-      - JWT_SECRET=your_jwt_secret
-    depends_on:
-      - postgres
-    networks:
-      - payment-network
-
-  postgres:
+  # Servicio de PostgreSQL
+  db:
     image: postgres:13
+    container_name: payments_db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: yourpassword
-      POSTGRES_DB: payment_db
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
-    networks:
-      - payment-network
+      - "5432:5432"
+  
+  # Servicio del microservicio de autenticación
+  user-auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payments_service
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "3002:3000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/node_modules
 
-networks:
-  payment-network:
-    driver: bridge
+volumes:
+  pgdata:

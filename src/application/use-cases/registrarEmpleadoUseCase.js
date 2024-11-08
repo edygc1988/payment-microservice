@@ -8,7 +8,7 @@ class RegistrarEmpleado {
     async execute(data) {
 
       // Aquí podrías almacenar temporalmente las marcaciones para calcular el rol al final del mes
-      console.log('Procesando marcación:', data);
+      console.log('Procesando empleado:', data);
 
       const empleadoData = data.empleado;
       const empleado = {
@@ -31,23 +31,16 @@ class RegistrarEmpleado {
         tipoJefe: s.tipo,
         tipoContrato: s.tipoContrato,
         sueldo: s.sueldo,
+        mensualizaDecimoTercero: s.mensualizaDecimoTercero,
+        mensualizaDecimoCuarto: s.mensualizaDecimoCuarto,
+        fechaInicio: s.fechaInicio,
+        fechaFin: s.fechaFin,
       }));
-  
-      superiores = [
-        ...superiores,
-        ...empleadoData.personas.map(s => ({
-          id: s.id,
-          nombre: s.nombre,
-          tipoJefe: s.tipo,
-          tipoContrato: s.tipoContrato,
-          sueldo: s.sueldo,
-        }))
-      ];
   
       // Registrar los superiores
       for (const superior of superiores) {
         await this.jefeRepository.save(superior);
-        await this.jefeRepository.assignJefe(empleado.id, superior.id, superior.tipoContrato, superior.sueldo);
+        await this.jefeRepository.assignJefe(empleado.id, superior);
       }
     }
 

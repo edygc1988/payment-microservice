@@ -17,10 +17,14 @@ const MarcacionRepository = require("../../../domain/repositories/marcacionRepos
 const RegistrarMarcacion = require("../../../application/use-cases/registrarMarcacionUseCase");
 const CalculatePayrol = require("../../../application/use-cases/calcularRolPago");
 const RegistrarEmpleado = require("../../../application/use-cases/registrarEmpleadoUseCase");
-const RolPago = require('../../../application/use-cases/rolPagoUseCase');
+const RolPago = require("../../../application/use-cases/rolPagoUseCase");
 
 // Instancia los repositorios
-const rolPagoRepository = new RolPagoRepository({ RolPagoModel, EmpleadoModel, JefeModel });
+const rolPagoRepository = new RolPagoRepository({
+  RolPagoModel,
+  EmpleadoModel,
+  JefeModel,
+});
 const empleadoRepository = new EmpleadoRepository({ EmpleadoModel });
 const marcacionRepository = new MarcacionRepository({ MarcacionModel });
 const jefeRepository = new JefeRepository({
@@ -37,6 +41,37 @@ const registrarEmpleado = new RegistrarEmpleado(
   empleadoRepository,
   jefeRepository
 );
+
+exports.calculateMes = async (req, res) => {
+  try {
+    const { empresaId } = req.body;
+    //Buscar marcaciones de empleados
+    let empleadoData;
+    let paramsRol = [];
+    let payrol;
+    if (empresaId) {
+      empleadoData = await registrarEmpleado.getEmpleadosByJefe(empresaId);
+
+      /* PARA PROBAR FUNCIONALIDAD SE QUEMAN VALORS */      
+      paramsRol.SBU = 460;
+      paramsRol.aporteIESS = 8.45;//0.0845;
+      paramsRol.fondoReserva = 8.33;//0.0833;
+      paramsRol.mesDecimoTercero = 8;
+      paramsRol.mesDecimoCuarto = 12;
+      empleadoData.forEach(async (empleado) => {
+        payrol = await calculatePayrol.calculateMonthlyPayroll(empleado, paramsRol);
+      });
+      
+    }
+
+    res.status(201).json({
+      message: "Pago calculated successfully",
+      payrol,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 exports.calculate = async (req, res) => {
   try {
@@ -68,13 +103,12 @@ exports.calculate = async (req, res) => {
             personaId,
             sueldo,
             year,
-            month
+            month,
           },
           marcacionData
         );
-        console.log('calculo ' + payrol);
+        console.log("calculo " + payrol);
       });
-      
     }
 
     if (personaId) {
@@ -88,22 +122,22 @@ exports.calculate = async (req, res) => {
             month
           );
 
-          empleadoId = empleado.id;
-          sueldo = empleado.EmpleadoJefe.sueldo;
-  
-          const payrol = await calculatePayrol.execute(
-            {
-              userId,
-              empleadoId,
-              empresaId,
-              personaId,
-              sueldo,
-              year,
-              month
-            },
-            marcacionData
-          );
-          console.log('calculo ' + payrol);
+        empleadoId = empleado.id;
+        sueldo = empleado.EmpleadoJefe.sueldo;
+
+        const payrol = await calculatePayrol.execute(
+          {
+            userId,
+            empleadoId,
+            empresaId,
+            personaId,
+            sueldo,
+            year,
+            month,
+          },
+          marcacionData
+        );
+        console.log("calculo " + payrol);
       });
     }
 
@@ -121,11 +155,10 @@ exports.obteberRol = async (req, res) => {
     const empleadoId = req.params.empleadoId;
     const anio = req.params.anio;
     const mes = req.params.mes;
-    const rolPago = await rolPagoUseCase.getPayRol({empleadoId, anio, mes});
+    const rolPago = await rolPagoUseCase.getPayRol({ empleadoId, anio, mes });
 
     res.status(200).json(rolPago);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-    

@@ -9,18 +9,26 @@ class JefeRepository {
       return await this.JefeModel.upsert(jefe);
     }
 
-    async assignJefe(empleadoId, jefeId, tipoContrato, sueldo) {
+    async assignJefe(empleadoId, superior) {
       try {
         // Asigna el jefe al empleado en la tabla intermedia
+
+        console.log(superior);
         const empleado = await this.EmpleadoModel.findByPk(empleadoId);
-        const jefe = await this.JefeModel.findByPk(jefeId);
+        const jefe = await this.JefeModel.findByPk(superior.id);
 
         // Asignar jefe al empleado
-        await empleado.addSuperiores(jefe, { through: { tipoContrato, sueldo } });
+        const tipoContrato = superior.tipoContrato;
+        const sueldo = superior.sueldo;
+        const mensualizaDecimoTercero = superior.mensualizaDecimoTercero;
+        const mensualizaDecimoCuarto = superior.mensualizaDecimoCuarto;
+        const fechaInicio = superior.fechaInicio;
+        const fechaFin = superior.fechaFin;
+        await empleado.addSuperiores(jefe, { through: { tipoContrato, sueldo, mensualizaDecimoTercero, mensualizaDecimoCuarto, fechaInicio, fechaFin } });
   
         return { message: "Jefe asignado correctamente" };
       } catch (error) {
-        throw new Error(error.message);
+        throw new Error(error);
       }
     }
 

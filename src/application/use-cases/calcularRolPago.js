@@ -3,6 +3,73 @@ class CalculatePayrol {
     this.rolPagoRepository = rolPagoRepository;
   }
 
+  async calculateMonthlyPayroll(employee, paramsRol) {
+
+    const SBU = paramsRol.SBU;//460; // Salario Básico Unificado 2024
+    const aporteIESS = paramsRol.aporteIESS / 100;//0.0845;
+    const fondoReservaPorcentaje = paramsRol.fondoReserva / 100;//0.0833;
+    const currentYear = new Date().getFullYear(); // Mes actual (de 1 a 12)
+    const currentMonth = new Date().getMonth() + 1; // Mes actual (de 1 a 12)
+
+    // Calculo del salario mensual del empleado
+    const salarioMensual = employee.EmpleadoJefe.sueldo;
+
+    // Décimo tercero (se puede mensualizar o pagar en diciembre)
+    let decimoTercero = 0;
+    if (employee.EmpleadoJefe.mensualizaDecimoTercero) {
+      decimoTercero = salarioMensual / 12; // Mensualizado
+    } else if (currentMonth == paramsRol.mesDecimoTercero) {//Se paga el mes parametrizado en base de datos ejm: 12
+      decimoTercero = salarioMensual; // Pagado en diciembre
+    }
+
+    // Décimo cuarto (SBU fijo, mensualizado o en agosto)
+    let decimoCuarto = 0;
+    if (employee.EmpleadoJefe.mensualizaDecimoCuarto) {
+      decimoCuarto = SBU / 12; // Mensualizado
+    } else if (currentMonth == paramsRol.mesDecimoCuarto) {//Se paga el mes parametrizado en base de datos ejm: 8
+      decimoCuarto = SBU; // Pagado en agosto
+    }
+
+    // Fondo de reserva si ha trabajado más de 1 año
+    const fondoReserva =
+      new Date().getFullYear() - employee.EmpleadoJefe.fechaInicio.getFullYear() > 1
+        ? salarioMensual * fondoReservaPorcentaje
+        : 0;
+
+    // Aporte al IESS (8.45%)
+    const iessDeduction = salarioMensual * aporteIESS;
+
+    // Total ingresos del mes (incluyendo décimos y fondo de reserva)
+    const totalIngresos =
+      salarioMensual + decimoTercero + decimoCuarto + fondoReserva;
+
+    // Salario neto (ingresos menos el aporte al IESS)
+    const netSalary = totalIngresos - iessDeduction;
+    const rolPago = await this.rolPagoRepository.createPayrol({
+      empleadoId: employee.id,
+      sueldo: salarioMensual,
+      horasTrabajadas: 0,
+      horasExtras50: 0,
+      horasExtras100: 0,
+      pagoHorasRegulares: 0,
+      pagoHorasExtras50: 0,
+      pagoHorasExtras100: 0,
+      iess: iessDeduction,
+      fondoReserva,
+      decimoTercero,
+      decimoCuarto,
+      pagoTotal: netSalary,
+      fechaPago: new Date().toISOString(),
+      empresaId: employee.EmpleadoJefe.jefeId,
+      personaId: employee.EmpleadoJefe.personaId,
+      anio: currentYear,
+      mes: currentMonth,
+
+    });
+
+    return rolPago;
+  }
+
   async execute(usuarioData, marcacionData) {
     let minutosTrabajados = 0;
     let minutosExtras50 = 0;
@@ -21,13 +88,24 @@ class CalculatePayrol {
     function crearFecha(hora) {
       const [horaStr, minutoStr] = hora.split(":");
       const fecha = new Date(
-        1970, 0, 1, parseInt(horaStr, 10), parseInt(minutoStr, 10), 0
+        1970,
+        0,
+        1,
+        parseInt(horaStr, 10),
+        parseInt(minutoStr, 10),
+        0
       );
       return fecha;
     }
 
     // Función para distribuir minutos en categorías según la hora
-    function distribuirMinutos(horaInicio, horaFin, totalMinutosTrabajados, totalMinutosExtras50, totalMinutosExtras100) {
+    function distribuirMinutos(
+      horaInicio,
+      horaFin,
+      totalMinutosTrabajados,
+      totalMinutosExtras50,
+      totalMinutosExtras100
+    ) {
       let inicio = crearFecha(horaInicio);
       let fin = crearFecha(horaFin);
 
@@ -56,7 +134,7 @@ class CalculatePayrol {
 
         inicio = siguienteHora;
       }
-
+      
       return {
         totalMinutosTrabajados,
         totalMinutosExtras50,
@@ -129,7 +207,8 @@ class CalculatePayrol {
       const pagoHorasExtras50 = horasExtras50 * (pagoHora * 1.5);
       const pagoHorasExtras100 = horasExtras100 * (pagoHora * 2);
 
-      usuarioData.pagoTotal = pagoHorasRegulares + pagoHorasExtras50 + pagoHorasExtras100;
+      usuarioData.pagoTotal =
+        pagoHorasRegulares + pagoHorasExtras50 + pagoHorasExtras100;
 
       const rolPago = await this.rolPagoRepository.createPayrol({
         empleadoId: usuarioData.empleadoId,
@@ -145,7 +224,7 @@ class CalculatePayrol {
         empresaId: usuarioData.empresaId,
         personaId: usuarioData.personaId,
         anio: usuarioData.year,
-        mes: usuarioData.month
+        mes: usuarioData.month,
       });
 
       return rolPago;

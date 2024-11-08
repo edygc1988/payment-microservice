@@ -32,6 +32,6 @@ RolPagoModel.associate({
 });*/
 
 // Sincronizar la base de datos
-sequelize.sync();
+sequelize.sync({alter: true});
 
 module.exports = { sequelize, RolPagoModel, EmpleadoModel, JefeModel, EmpleadoJefeModel, MarcacionModel };
