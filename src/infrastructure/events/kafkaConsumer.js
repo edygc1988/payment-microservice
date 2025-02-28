@@ -15,7 +15,7 @@ const { MarcacionModel, EmpleadoModel, JefeModel, EmpleadoJefeModel } = require(
 // Configuración de Kafka
 const kafkaConfig = {
   clientId: 'payroll-service',
-  brokers: ['localhost:29092'], // Configuración de servidor Kafka
+  brokers: [process.env.KAFKA_BROKER || 'localhost:29092'], // Usa la variable de entorno o un valor por defecto
 };
 
 // Instancia los repositorios

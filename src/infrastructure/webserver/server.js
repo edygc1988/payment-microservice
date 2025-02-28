@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');  // Importa el paquete CORS
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const {sequelize} = require('../database/sequelize');
 const paymentRoutes = require('./routes/rolPagoRoutes');
 const metricsRoutes = require('./routes/metricasRoutes');
@@ -15,6 +17,17 @@ const KafkaConsumerService = new KafkaController();
 const app = express();
 // Configura la recolección de métricas por defecto
 collectDefaultMetrics();
+
+// Configura Helmet para seguridad de cabeceras HTTP
+app.use(helmet());
+
+// Configura limitación de tasa
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100 // limita cada IP a 100 solicitudes por ventana de 15 minutos
+});
+app.use(limiter);
+
 // Habilitar CORS para todas las solicitudes
 app.use(cors());
 

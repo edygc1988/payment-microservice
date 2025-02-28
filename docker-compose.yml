@@ -12,10 +12,10 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5434:5432"
   
   # Servicio del microservicio de autenticación
-  user-auth-service:
+  payments-service:
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,11 +23,12 @@ services:
     environment:
       NODE_ENV: development
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT
       DB_USER: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BROKER: ${KAFKA_BROKER}  # Cambia esto para que apunte al nombre del servicio de Kafka
     ports:
       - "3002:3000"
     depends_on:
